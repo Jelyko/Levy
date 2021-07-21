@@ -3,11 +3,12 @@ const client = new Discord.Client({ partials: ['MESSAGE', 'CHANNEL', 'REACTION']
 const mongoose = require('./database/mongoose');
 const fs = require('fs');
 const DisTube = require('distube')
+const Vote = require('./database/models/voteSchema');
 require('dotenv').config();
 
 client.distube = new DisTube(client, {
 	searchSongs: false,
-	emitNewSongOnly: true,
+	emitNewSongOnly: false,
 	leaveOnEmpty: true,
 	leaveOnFinish: true,
 	updateYouTubeDL: false,
@@ -53,13 +54,19 @@ client.distube.on('addSong', (message, queue, song) => {
 	message.channel.send(Embed);
 }) 
 
-client.distube.on('playSong', (message, queue, song) => {
+client.distube.on('playSong', async (message, queue, song) => {
 	const Embed = new Discord.MessageEmbed()
 		.setTitle(`🎵 Playing song`)
 		.setDescription(`\`${song.name}\` - \`${song.formattedDuration}\` - requested by ${song.user}`)
 		.setColor("#13DC00")
 	message.channel.send(Embed);
 	client.distube.toggleAutoplay(message);
+	let voteProfile = await Vote.findOne({ guildID: message.guild.id });
+	if (!voteProfile) {
+		return
+	} else {
+		await Vote.findOneAndDelete({ guildID: message.guild.id });
+	}
 })
 
 client.distube.on('playList', (message, queue, playlist, song) => {
